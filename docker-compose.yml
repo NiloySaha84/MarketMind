@@ -54,8 +54,17 @@ services:
     env_file: .env.production.local
     environment:
       POSTGRES_USER: bia_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: bia_prod
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$$DB_PASSWORD" ]; then
+          echo "DB_PASSWORD is required for postgres startup" >&2
+          exit 1
+        fi
+        export POSTGRES_PASSWORD="$$DB_PASSWORD"
+        exec docker-entrypoint.sh postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -69,7 +78,15 @@ services:
   redis:
     image: redis:8-alpine
     env_file: .env.production.local
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$$REDIS_PASSWORD" ]; then
+          echo "REDIS_PASSWORD is required for redis startup" >&2
+          exit 1
+        fi
+        exec redis-server --requirepass "$$REDIS_PASSWORD"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 5s
@@ -80,9 +97,6 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     env_file: .env.production.local
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"
     depends_on:
