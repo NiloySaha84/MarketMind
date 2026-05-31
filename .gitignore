@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets (keep *.example templates)
+.env
+.env.*
+.env.*.local
+!.env.production.local.example
+!.env.example
+!**/.env.example
+
+# APM / monitoring runtime
+apminsightdata/
+apmInsideNode.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+dist/
+build/
+frontend/dist/
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Vite / Vitest cache (outside node_modules)
+.vite/
+
+# Runtime / process
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# npm / tooling caches
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.grunt
+lib-cov/
+bower_components/
+jspm_packages/
+typings/
+.lock-wscript
+
+# Legacy / unused from default template
+.next/

@@ -1,0 +1,100 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  unit:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  integration:
+    name: Backend integration tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bia_user
+          POSTGRES_PASSWORD: bia_password
+          POSTGRES_DB: bia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bia_user -d bia_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: bia_app
+      DB_PASSWORD: bia_password
+      DB_NAME: bia_test
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: test-jwt-secret
+      JWT_EXPIRE: 1d
+      ARCJET_KEY: ajkey_test
+      ARCJET_ENV: development
+      PG_ADMIN_USER: bia_user
+      PG_ADMIN_PASSWORD: bia_password
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+      - run: npm ci
+
+      - name: Apply database schema, roles and RLS policies
+        env:
+          PGPASSWORD: bia_password
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          psql -h localhost -U bia_user -d bia_test -v ON_ERROR_STOP=1 -f db/init.sql
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test

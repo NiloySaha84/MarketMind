@@ -1,0 +1,30 @@
+# Dependencies — installed fresh in the image via npm ci
+node_modules
+
+# Frontend — built and served by its own Docker image
+frontend
+
+# Secrets and local env — inject at runtime (docker-compose env_file / -e)
+.env
+.env.*
+
+# Git and editor
+.git
+.gitignore
+.vscode
+.cursor
+
+# Logs and runtime artifacts
+*.log
+logs
+apminsightdata
+pids
+coverage
+.nyc_output
+
+# OS / misc
+.DS_Store
+Thumbs.db
+*.md
+test.md
+artillery.yml

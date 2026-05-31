@@ -1,0 +1,16 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 10
+      arrivalRate: 10
+  variables:
+    authToken:
+      - ""
+
+scenarios:
+  - name: "Business Idea"
+    flow:
+      - get:
+          url: "/api/v1/business-ideas"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
