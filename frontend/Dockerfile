@@ -19,6 +19,9 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Backend service the /api requests are proxied to. Override per environment.
 ENV API_UPSTREAM=http://api:3000
 
+# Default listen port for local/compose use. Railway overrides PORT at runtime.
+ENV PORT=80
+
 EXPOSE 80
 
 # nginx:alpine entrypoint runs envsubst on /etc/nginx/templates/*.template
