@@ -1,0 +1,6 @@
+{
+  "name": "marketmind-queue-service",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Railway queue service metadata for Nixpacks detection"
+}
