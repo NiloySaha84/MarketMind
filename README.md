@@ -659,7 +659,7 @@ PGADMIN_DEFAULT_EMAIL
 PGADMIN_DEFAULT_PASSWORD
 ```
 
-Copy `.env.production.local.example` to `.env.production.local` and fill in values. For Site24x7 APM, copy `apmInsideNode.json.example` to `apmInsideNode.json` (the real config file is gitignored).
+Copy `.env.production.local.example` to `.env.production.local` and fill in values. For Site24x7 APM, copy `apminsightnode.json.example` to `apminsightnode.json` (the real config file is gitignored).
 
 Frontend variables:
 

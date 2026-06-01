@@ -1,5 +1,5 @@
 {
     "licenseKey": "your-site24x7-apm-license-key",
     "appName": "MarketMind",
-    "PORT": 10000
+    "port": 3000
 }

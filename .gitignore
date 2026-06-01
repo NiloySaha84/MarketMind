@@ -11,7 +11,7 @@ node_modules/
 
 # APM / monitoring runtime
 apminsightdata/
-apmInsideNode.json
+apminsightnode.json
 
 # Logs
 logs/
