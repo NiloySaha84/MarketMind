@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    // If there's no token, ensure we are logged out.
+    // no token = logged out
     if (!tokenStore.get()) {
       setUser(null);
       localStorage.removeItem(USER_KEY);

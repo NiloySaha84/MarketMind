@@ -1,4 +1,4 @@
-// market_size & five_year_projection are expressed in MILLIONS of USD.
+// values in millions of USD
 export function formatMoneyFromMillions(valueInMillions) {
   if (valueInMillions == null || Number.isNaN(Number(valueInMillions))) return '—';
   const millions = Number(valueInMillions);
@@ -46,11 +46,11 @@ export function ensureArray(value) {
   return [value];
 }
 
-// strengths/weaknesses may arrive as an array, a string, or null.
+// array, string, or null from the API
 export function toBulletList(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
   if (typeof value === 'string' && value.trim()) {
-    // split on sentence/semicolon boundaries for nicer display
+    // split on . or ; for display
     return value
       .split(/;|\n|•/)
       .map((s) => s.trim())
@@ -68,7 +68,7 @@ export function getDomain(url) {
   }
 }
 
-// Aggregate possibly-multiple market_analysis rows into one representative set.
+// pick the best row when there are multiples
 export function pickMarketAnalysis(marketAnalysis = []) {
   const rows = ensureArray(marketAnalysis);
   if (rows.length === 0) return null;

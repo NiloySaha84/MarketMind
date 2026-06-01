@@ -24,8 +24,7 @@ export default function MarketSection({ marketAnalysis = [] }) {
 
     if (!Number.isFinite(start) && !Number.isFinite(end)) return [];
 
-    // Build a 6-point series (year 0..5). Prefer compounding the growth rate;
-    // fall back to linear interpolation between start and projection.
+    // chart: year 0–5, compound growth if we have it
     const base = Number.isFinite(start) ? start : end / Math.pow(1 + (growth || 0) / 100, 5);
     const points = [];
     for (let y = 0; y <= 5; y++) {
@@ -39,7 +38,7 @@ export default function MarketSection({ marketAnalysis = [] }) {
       }
       points.push({ year: thisYear + y, label: y === 0 ? 'Now' : `+${y}y`, value: Math.round(value) });
     }
-    // Snap the final point to the model's explicit projection when available.
+    // last point = five_year_projection when set
     if (Number.isFinite(end)) points[5].value = Math.round(end);
     return points;
   }, [market]);

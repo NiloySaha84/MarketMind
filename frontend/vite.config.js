@@ -2,8 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-// In dev, proxy /api to the backend so the browser only ever talks to one origin
-// (no CORS needed). In production, nginx handles the same /api proxy.
+// dev proxy — prod uses nginx
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {

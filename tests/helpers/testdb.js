@@ -1,11 +1,6 @@
-// Test harness DB helpers.
-//
-// These connect as the Postgres SUPERUSER (bia_user) so the suite can reset
-// tables and seed users while BYPASSING row-level security. The application
-// code under test keeps using the normal `bia_app` pool from config/db.js, so
-// RLS is still exercised by the actual request handlers.
+// superuser helpers for seed/reset — app code still runs as bia_app (RLS on)
 
-import '../../config/env.js'; // side effect: load .env.test.local into process.env
+import '../../config/env.js';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -28,7 +23,7 @@ const admin = new Pool({
     max: 4
 });
 
-// Every application table, ordered so a single TRUNCATE ... CASCADE is enough.
+// truncate order — one CASCADE covers everything
 const APP_TABLES = [
     'report',
     'competitors',

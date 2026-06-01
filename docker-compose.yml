@@ -8,8 +8,7 @@ x-backend: &backend
       condition: service_healthy
   restart: unless-stopped
 
-# These override the localhost values from .env.production.local so containers
-# reach each other by service name on the compose network.
+# point at service names instead of localhost
 x-backend-env: &backend-env
   DB_HOST: postgres
   REDIS_HOST: redis

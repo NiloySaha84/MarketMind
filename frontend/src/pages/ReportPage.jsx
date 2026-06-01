@@ -56,7 +56,7 @@ export default function ReportPage() {
     return () => clearTimeout(pollRef.current);
   }, [fetchIdea]);
 
-  // Auto-poll while the async workers are still producing the report.
+  // keep polling until report shows up
   useEffect(() => {
     clearTimeout(pollRef.current);
     if (!idea || isReportReady(idea)) {

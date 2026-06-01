@@ -1,20 +1,18 @@
-# Dependencies — installed fresh in the image via npm ci
+# rebuilt in the image
 node_modules
 
-# Frontend — built and served by its own Docker image
+# has its own Dockerfile
 frontend
 
-# Secrets and local env — inject at runtime (docker-compose env_file / -e)
+# inject at runtime
 .env
 .env.*
 
-# Git and editor
 .git
 .gitignore
 .vscode
 .cursor
 
-# Logs and runtime artifacts
 *.log
 logs
 apminsightdata
@@ -22,7 +20,6 @@ pids
 coverage
 .nyc_output
 
-# OS / misc
 .DS_Store
 Thumbs.db
 *.md

@@ -3,8 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
-// Mock the network layer and toasts so the test exercises the UI + auth-state
-// journey without a backend or DOM gaps (react-hot-toast uses matchMedia).
+// mock API + toasts — no backend needed
 vi.mock('../src/api/auth.js', () => ({
   loginRequest: vi.fn(),
   signupRequest: vi.fn(),

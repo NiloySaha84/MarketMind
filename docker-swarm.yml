@@ -1,0 +1,171 @@
+# compose locally (make swarm-up) or stack deploy on oracle-vm (make swarm-deploy-stack)
+# secrets come from .swarm-secrets/ — run make swarm-secrets-prepare first
+x-backend-common: &backend-common
+  environment: &backend-env
+    NODE_ENV: production
+    PORT: "3000"
+    DB_HOST: postgres
+    DB_PORT: "5432"
+    DB_NAME: bia_prod
+    REDIS_HOST: redis
+    REDIS_PORT: "6379"
+    HOSTNAME: 0.0.0.0
+    JWT_EXPIRE: 1d
+    JWT_COOKIE_EXPIRE: "30"
+    OPENAI_MODEL: gpt-4o-mini
+    ARCJET_ENV: production
+  secrets: &backend-secrets
+    - db_password
+    - redis_password
+    - jwt_secret
+    - openai_api_key
+    - tavily_api_key
+    - arcjet_key
+  depends_on:
+    - postgres
+    - redis
+  restart: unless-stopped
+  deploy:
+    restart_policy:
+      condition: any
+      delay: 5s
+
+services:
+  api:
+    <<: *backend-common
+    image: ${IMAGE_PREFIX:-}marketmind-api-image:${IMAGE_VERSION:-latest}
+    command: node app.js
+    environment:
+      <<: *backend-env
+      DB_USER: bia_app
+    secrets: *backend-secrets
+    ports:
+      - "3000:3000"
+
+  dispatcher:
+    <<: *backend-common
+    image: ${IMAGE_PREFIX:-}marketmind-dispatcher-image:${IMAGE_VERSION:-latest}
+    command: node dispatcher-server.js
+    environment:
+      <<: *backend-env
+      DB_USER: bia_worker
+    secrets: *backend-secrets
+
+  worker:
+    <<: *backend-common
+    image: ${IMAGE_PREFIX:-}marketmind-worker-image:${IMAGE_VERSION:-latest}
+    command: node worker-server.js
+    environment:
+      <<: *backend-env
+      DB_USER: bia_worker
+    secrets: *backend-secrets
+
+  frontend:
+    image: ${IMAGE_PREFIX:-}marketmind-frontend-image:${IMAGE_VERSION:-latest}
+    environment:
+      API_UPSTREAM: http://api:3000
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bia_user
+      POSTGRES_DB: bia_prod
+    secrets:
+      - db_password
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export POSTGRES_PASSWORD="$$(cat /run/secrets/db_password)"
+        exec docker-entrypoint.sh postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    configs:
+      - source: db_init
+        target: /docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bia_user -d bia_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+
+  redis:
+    image: redis:8-alpine
+    secrets:
+      - redis_password
+    command:
+      - /bin/sh
+      - -c
+      - |
+        exec redis-server --requirepass "$$(cat /run/secrets/redis_password)"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    secrets:
+      - pgadmin_email
+      - pgadmin_password
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export PGADMIN_DEFAULT_EMAIL="$$(cat /run/secrets/pgadmin_email)"
+        export PGADMIN_DEFAULT_PASSWORD="$$(cat /run/secrets/pgadmin_password)"
+        exec /entrypoint.sh
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 5s
+
+secrets:
+  db_password:
+    file: .swarm-secrets/db_password
+  redis_password:
+    file: .swarm-secrets/redis_password
+  jwt_secret:
+    file: .swarm-secrets/jwt_secret
+  openai_api_key:
+    file: .swarm-secrets/openai_api_key
+  tavily_api_key:
+    file: .swarm-secrets/tavily_api_key
+  arcjet_key:
+    file: .swarm-secrets/arcjet_key
+  pgadmin_email:
+    file: .swarm-secrets/pgadmin_email
+  pgadmin_password:
+    file: .swarm-secrets/pgadmin_password
+
+configs:
+  db_init:
+    file: ./db/init.sql
+
+volumes:
+  postgres_data:

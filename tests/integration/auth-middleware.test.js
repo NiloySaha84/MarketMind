@@ -1,11 +1,4 @@
-// Auth + middleware request-flow tests.
-//
-// Focuses on the security-critical behaviour of the request pipeline:
-//   - the authorize middleware (missing / malformed / valid tokens)
-//   - the error middleware (malformed JSON -> 400)
-//   - per-user isolation enforced by Postgres row-level security
-//
-// Run with: npm run test:integration
+// auth + RLS tests — npm run test:integration
 
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -88,20 +81,20 @@ describe('auth + middleware request flows', () => {
             const created = await createIdea(aliceToken, { idea: 'Alice secret idea', target_market: 'X' });
             const aliceIdeaId = created.body.data.business_idea_id;
 
-            // Bob tries to fetch Alice's idea directly -> RLS hides it -> 404.
+            // RLS hides Alice's idea from Bob
             const bobFetch = await request(app)
                 .get(`/api/v1/business-ideas/${aliceIdeaId}`)
                 .set('Authorization', `Bearer ${bobToken}`);
             assert.equal(bobFetch.status, 404);
 
-            // Bob's list must not contain Alice's idea.
+            // Bob's list is empty of Alice's data
             const bobList = await request(app)
                 .get('/api/v1/business-ideas')
                 .set('Authorization', `Bearer ${bobToken}`);
             assert.equal(bobList.status, 200);
             assert.equal(bobList.body.data.business_ideas.length, 0);
 
-            // Alice can still see her own idea.
+            // Alice still sees hers
             const aliceFetch = await request(app)
                 .get(`/api/v1/business-ideas/${aliceIdeaId}`)
                 .set('Authorization', `Bearer ${aliceToken}`);

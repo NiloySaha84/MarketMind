@@ -56,12 +56,12 @@ export default function NewIdea() {
         return;
       }
     } catch (err) {
-      // keep polling on transient errors
+      // keep trying on blips
       console.warn('poll error', extractError(err));
     }
 
     if (pollsRef.current >= MAX_POLLS) {
-      // Give up auto-navigation but let the user open whatever is available.
+      // stop auto-nav but leave links usable
       toast('Analysis is taking longer than usual — you can open it anytime.', { icon: '⏳' });
       goToReport(id);
       return;
@@ -77,7 +77,7 @@ export default function NewIdea() {
     }
     setPhase('processing');
     try {
-      // 1) Create the idea (createBusinessIdea API)
+      // submit idea
       const result = await createBusinessIdea({
         idea: form.idea.trim(),
         target_market: form.target_market.trim(),
@@ -86,7 +86,7 @@ export default function NewIdea() {
       setCreatedId(id);
       toast.success('Idea submitted — running analysis…');
 
-      // 2) Poll getBusinessIdeaById until the report has been created
+      // poll until report is ready
       pollsRef.current = 0;
       pollRef.current = setTimeout(() => poll(id), POLL_INTERVAL);
     } catch (err) {

@@ -1,12 +1,4 @@
-// API integration tests — real Express app against a real Postgres test DB.
-//
-// Exercises the auth and business-idea HTTP endpoints through supertest,
-// including the success and error paths and the Postgres-error -> HTTP-status
-// mapping in the error middleware. Requires the test stack to be up:
-//
-//   docker compose -f tests/docker-compose.test.yml up -d
-//
-// Run with: npm run test:integration
+// API integration tests — needs tests/docker-compose.test.yml up
 
 import { test, describe, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -111,8 +103,7 @@ describe('API integration', () => {
             assert.ok(res.body.data.business_idea_id);
             assert.ok(res.body.data.outbox_jobs.competitors);
             assert.ok(res.body.data.outbox_jobs.market_analysis);
-            // The transactional outbox row count is independent of whether the
-            // immediate BullMQ dispatch succeeded.
+            // outbox row exists regardless of immediate dispatch
             assert.equal(await countRows('outbox_jobs'), 2);
             assert.equal(await countRows('business_idea'), 1);
         });

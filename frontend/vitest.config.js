@@ -1,8 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-// Dedicated Vitest config (no tailwind plugin needed for tests). Uses jsdom so
-// React Testing Library can render components, and a setup file for matchers.
+// jsdom + setup file — no tailwind plugin needed here
 export default defineConfig({
   plugins: [react()],
   test: {

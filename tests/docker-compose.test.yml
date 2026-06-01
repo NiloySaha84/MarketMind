@@ -1,11 +1,4 @@
-# Disposable Postgres + Redis for the integration test suite.
-#
-#   docker compose -f tests/docker-compose.test.yml up -d
-#   npm run test:integration
-#   docker compose -f tests/docker-compose.test.yml down -v
-#
-# Ports are offset (5433 / 6380) so this never collides with the dev stack in
-# the root docker-compose.yml.
+# test postgres + redis (ports 5433/6380 so dev stack doesn't clash)
 
 services:
   postgres-test:
@@ -17,7 +10,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      # Schema + roles + RLS policies are applied once on first start.
+      # init.sql on first start
       - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bia_user -d bia_test"]

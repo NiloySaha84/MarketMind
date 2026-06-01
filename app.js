@@ -1,7 +1,6 @@
 import AgentAPI from 'apminsight';
 
-// Skip APM initialization during tests: it phones home and keeps handles open,
-// which would slow the suite down and prevent a clean process exit.
+// skip APM in tests — keeps the process from hanging
 if (process.env.NODE_ENV !== 'test') {
     AgentAPI.config();
 }
@@ -19,8 +18,7 @@ import arcjetMiddleware from './middleware/arcjet.middleware.js';
 
 const app = express();
 
-// Behind nginx/Docker (and any reverse proxy), trust forwarded headers so the
-// client IP is read from X-Forwarded-For. Arcjet needs this to fingerprint by IP.
+// need real client IP for Arcjet (X-Forwarded-For behind nginx)
 app.set('trust proxy', true);
 
 app.use(logger('dev'));

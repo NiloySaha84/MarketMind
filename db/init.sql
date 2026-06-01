@@ -1,4 +1,4 @@
--- Schema for MarketMind (runs once on first postgres container start)
+-- runs on first postgres start
 
 CREATE TABLE public.users (
     id integer NOT NULL,
@@ -129,24 +129,22 @@ ALTER TABLE ONLY public.report
 ALTER TABLE ONLY public.market_analysis
     ADD CONSTRAINT market_analysis_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.business_idea(id) ON DELETE CASCADE;
 
--- Application roles: bia_app (RLS enforced) and bia_worker (internal jobs, bypass RLS)
+-- bia_app = API (RLS on), bia_worker = jobs (bypass RLS)
 CREATE ROLE bia_app WITH LOGIN PASSWORD 'bia_password';
 CREATE ROLE bia_worker WITH LOGIN PASSWORD 'bia_password' BYPASSRLS;
 
 GRANT USAGE ON SCHEMA public TO bia_app, bia_worker;
--- The worker/dispatcher create queue tables (outbox_jobs, dead_letter_jobs) on
--- startup, so they need CREATE on the schema (Postgres 15+ no longer grants it).
+-- worker needs CREATE to set up queue tables at startup
 GRANT CREATE ON SCHEMA public TO bia_worker;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO bia_app, bia_worker;
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO bia_app, bia_worker;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bia_app, bia_worker;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO bia_app, bia_worker;
--- Queue tables created at runtime by bia_worker must remain accessible to bia_app.
+-- bia_app still needs access to tables bia_worker creates
 ALTER DEFAULT PRIVILEGES FOR ROLE bia_worker IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO bia_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE bia_worker IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO bia_app;
 
--- bia_worker owns the queue tables so its startup DDL (CREATE INDEX IF NOT
--- EXISTS, etc.) succeeds; bia_app keeps DML access via the grants above.
+-- bia_worker owns queue tables so its DDL works
 ALTER TABLE public.outbox_jobs OWNER TO bia_worker;
 ALTER TABLE public.dead_letter_jobs OWNER TO bia_worker;
 ALTER SEQUENCE public.outbox_jobs_id_seq OWNER TO bia_worker;
@@ -188,7 +186,7 @@ CREATE POLICY business_idea_update_own ON public.business_idea
 CREATE POLICY business_idea_delete_own ON public.business_idea
     FOR DELETE USING (user_id = NULLIF(current_setting('app.user_id', true), '')::integer);
 
--- competitors (scoped via owning business_idea)
+-- scoped through business_idea
 ALTER TABLE public.competitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.competitors FORCE ROW LEVEL SECURITY;
 
@@ -236,4 +234,4 @@ CREATE POLICY report_access_own_business ON public.report
           AND b.user_id = NULLIF(current_setting('app.user_id', true), '')::integer
     ));
 
--- outbox_jobs and dead_letter_jobs: internal queue tables, no RLS
+-- internal queues, no RLS

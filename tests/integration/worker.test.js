@@ -1,7 +1,4 @@
-// Worker + dispatcher pipeline tests (transactional outbox -> BullMQ -> worker).
-//
-// IMPORTANT: the first import switches the app DB pool to the `bia_worker`
-// role (BYPASSRLS), matching how the dispatcher/worker run in production.
+// outbox -> BullMQ -> worker. import use-worker-role first (bia_worker role).
 import '../helpers/use-worker-role.js';
 
 import { test, describe, before, after, beforeEach } from 'node:test';
@@ -74,12 +71,12 @@ describe('outbox dispatcher + worker pipeline', () => {
             const dispatched = await dispatchOutboxById(outboxId);
             assert.equal(dispatched, true);
 
-            // The BullMQ job exists with the deterministic outbox-derived id.
+            // job id matches outbox row
             const job = await businessIdeaQueue.getJob(`outbox-${outboxId}`);
             assert.ok(job, 'expected a BullMQ job to be created');
             assert.equal(job.name, 'processBusinessIdea');
 
-            // The outbox row is now marked processed so the poller won't resend.
+            // outbox marked processed
             const { rows } = await adminQuery('SELECT processed_at FROM outbox_jobs WHERE id = $1', [outboxId]);
             assert.ok(rows[0].processed_at, 'expected processed_at to be set');
         });
@@ -107,7 +104,7 @@ describe('outbox dispatcher + worker pipeline', () => {
             const count = await dispatchOutboxBatch();
             assert.equal(count, 2);
 
-            // Everything is processed now, so a second batch dispatches nothing.
+            // nothing left to dispatch
             const second = await dispatchOutboxBatch();
             assert.equal(second, 0);
 
@@ -129,14 +126,13 @@ describe('outbox dispatcher + worker pipeline', () => {
                 user_id: user.id
             };
 
-            // Enqueue the two analysis jobs the same way the dispatcher would.
+            // same enqueue path as the dispatcher
             await businessIdeaQueue.add('processBusinessIdea', payload, { jobId: `test-comp-${idea.id}` });
             await businessIdeaQueue.add('processMarketAnalysis', payload, { jobId: `test-market-${idea.id}` });
 
             startBusinessIdeaWorker();
 
-            // With no OPENAI/TAVILY keys the services take their fallback path:
-            // competitors -> a single "None" row, market -> a row with null metrics.
+            // no API keys — fallback paths only
             const ready = await waitFor(async () => {
                 const competitors = await countRows('competitors');
                 const market = await countRows('market_analysis');

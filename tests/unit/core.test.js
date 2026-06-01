@@ -1,13 +1,4 @@
-// Core unit tests for MarketMind.
-//
-// These cover the most important pieces of business/infra logic that can run
-// without a live Postgres, Redis, or any external API:
-//   - lib/resilience.js     (retry + circuit breaker that guard OpenAI/Tavily)
-//   - middleware/error.middleware.js (maps DB/HTTP errors -> status codes)
-//   - lib/dbSession.js      (row-level-security session helpers)
-//   - queue/deadLetter.js   (exhausted-job detection)
-//
-// Run with: `npm test` (uses Node's built-in test runner, no extra deps).
+// unit tests — no live DB/Redis/API. npm test
 
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -21,8 +12,7 @@ import errorMiddleware from '../../middleware/error.middleware.js';
 import { setRLSUser, setLoginEmail } from '../../lib/dbSession.js';
 import { isExhausted } from '../../queue/deadLetter.js';
 
-// --- Minimal Express res mock --------------------------------------------
-// errorMiddleware only needs status()/json() and a headersSent flag.
+// minimal res mock for errorMiddleware
 const makeRes = () => {
     const res = {
         statusCode: undefined,
@@ -127,7 +117,7 @@ describe('lib/resilience - retryWithBackoff', () => {
             ),
             /still down/
         );
-        // 1 initial attempt + 2 retries
+        // 1 try + 2 retries
         assert.equal(calls, 3);
     });
 });
@@ -144,7 +134,7 @@ describe('lib/resilience - CircuitBreaker', () => {
         await assert.rejects(breaker.exec(boom));
         assert.equal(breaker.state, 'OPEN');
 
-        // While OPEN, the breaker rejects without invoking the function.
+        // OPEN = fail fast, fn never called
         let invoked = false;
         await assert.rejects(
             breaker.exec(async () => {
@@ -254,7 +244,7 @@ describe('middleware/error.middleware - DB/HTTP error mapping', () => {
 });
 
 describe('lib/dbSession - RLS session helpers', () => {
-    // Capture the SQL + params each helper sends to the pg client.
+    // spy on set_config calls
     let captured;
     const client = {
         query(text, params) {

@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// Relative base URL: works behind the Vite dev proxy and the nginx prod proxy,
-// so the browser only ever talks to the frontend origin (no CORS headaches).
+// same-origin — vite dev proxy or nginx in prod
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 const api = axios.create({

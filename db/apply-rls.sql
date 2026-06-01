@@ -1,5 +1,4 @@
--- Apply RLS + roles to an existing database (run as bia_user / superuser).
--- Usage: psql -U bia_user -d bia_prod -f db/apply-rls.sql
+-- apply RLS to an existing DB: psql -U bia_user -d bia_prod -f db/apply-rls.sql
 
 DO $$
 BEGIN

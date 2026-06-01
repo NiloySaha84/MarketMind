@@ -38,6 +38,7 @@ pids/
 *.pid
 *.seed
 *.pid.lock
+.swarm-secrets/
 
 # OS
 .DS_Store

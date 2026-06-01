@@ -26,9 +26,7 @@ const getJobPayload = (job) => {
     return { businessId, ideaDescription, targetMarket };
 };
 
-// Runs after a competitor/market job commits: generate the final report if both
-// analyses are now present, then invalidate the user's list and detail caches so
-// the new data (and report) are served on the next request.
+// try to build the final report + bust cache after each analysis job
 const finalizeAnalysis = async (businessId, userId) => {
     try {
         const result = await generateReportIfReady(businessId);
@@ -184,7 +182,6 @@ export const startBusinessIdeaWorker = () => {
         return worker;
     }
 
-    // Make sure the dead letter table exists before jobs start failing.
     ensureDeadLetterTable().catch((error) => {
         console.error('[dlq] Failed to initialize dead_letter_jobs table:', error.message);
     });
@@ -208,8 +205,7 @@ export const startBusinessIdeaWorker = () => {
 
     worker.on('failed', async (job, err) => {
         console.error(`[worker] Failed job ${job?.id} (${job?.name}):`, err?.message);
-        // The 'failed' event fires after every attempt; only dead-letter once all
-        // retries are exhausted so we don't record transient failures.
+        // only dead-letter after the last retry
         if (isExhausted(job)) {
             await moveToDeadLetter(job, err);
         }

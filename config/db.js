@@ -8,8 +8,8 @@ const db = new Pool({
     password: DB_PASSWORD,
     port: DB_PORT,
     max: 20, // max connections
-    //idleTimeoutMillis: 30000, // for production
-    //connectionTimeoutMillis: 2000, // for production
+    //idleTimeoutMillis: 30000,
+    //connectionTimeoutMillis: 2000,
 });
 
 db.on('error', (err) => {

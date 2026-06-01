@@ -182,7 +182,7 @@ export const getBusinessIdeas = async (req, res, next) => {
             return acc;
         }, {});
 
-        // Rows are ordered newest-first, so keep the first final_summary seen per business.
+        // newest report wins (rows are DESC)
         const finalSummaryByBusinessId = reportRows.reduce((acc, report) => {
             if (!(report.business_id in acc)) {
                 acc[report.business_id] = report.final_summary;

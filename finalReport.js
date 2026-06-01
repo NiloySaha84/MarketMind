@@ -6,7 +6,7 @@ import { setRLSUser } from './lib/dbSession.js';
 
 const model = OPENAI_MODEL || 'gpt-4o-mini';
 
-// Maps to report.final_summary (TEXT NOT NULL). id, business_id, created_at are set at insert time.
+// saved as report.final_summary
 const FINAL_REPORT_SCHEMA = {
     type: 'object',
     additionalProperties: false,
@@ -105,8 +105,7 @@ Rules:
 `.trim();
 
 const callOpenAI = async (businessIdea) => {
-    // Constructed lazily so importing this module never requires an API key
-    // (the worker can boot and run its offline fallback path without one).
+    // lazy init — worker can import this without an API key
     const client = new OpenAI({ apiKey: OPENAI_API_KEY });
 
     const response = await callWithResilience(
@@ -143,8 +142,7 @@ const callOpenAI = async (businessIdea) => {
     return JSON.parse(content);
 };
 
-// Persists the report. The report table has FORCED row-level security, so we set
-// app.user_id within the transaction to satisfy the WITH CHECK policy on insert.
+// report table has RLS — set app.user_id in the transaction
 const saveReport = async (businessId, userId, finalSummary) => {
     let client;
     let inTransaction = false;
@@ -155,7 +153,7 @@ const saveReport = async (businessId, userId, finalSummary) => {
 
         await setRLSUser(client, userId);
 
-        // Keep a single, latest report per business idea.
+        // one report per idea
         await client.query('DELETE FROM report WHERE business_id = $1', [businessId]);
 
         const result = await client.query(
@@ -205,9 +203,7 @@ const generateFinalReport = async (businessIdea) => {
     };
 };
 
-// Generates and stores the final report for a business idea, but ONLY once both
-// the competitor and market analyses exist. Returns null if it is not ready yet,
-// so the worker that finishes the second analysis is the one that triggers it.
+// only runs when both competitor + market rows exist; null if still waiting
 const generateReportIfReady = async (businessId) => {
     const ideaResult = await db.query('SELECT * FROM business_idea WHERE id = $1', [businessId]);
     if (ideaResult.rows.length === 0) {

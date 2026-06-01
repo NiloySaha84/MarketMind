@@ -44,8 +44,7 @@ const fetchTavily = async (query, fetchCount) => {
     if (!response.ok) {
         const body = await response.text().catch(() => '');
         const error = new Error(`Tavily request failed: ${response.status} ${body}`.trim());
-        // Expose the status so retry/circuit-breaker logic can treat 429/5xx as transient.
-        error.status = response.status;
+        error.status = response.status; // so retry logic sees 429/5xx
         throw error;
     }
 
@@ -53,11 +52,11 @@ const fetchTavily = async (query, fetchCount) => {
     return Array.isArray(data.results) ? data.results : [];
 };
 
-// Rerank candidates by embedding cosine similarity to the query, returning the top `maxResults`.
+// rerank by embedding similarity to the query
 const rerank = async (query, candidates, maxResults) => {
     if (candidates.length === 0) return [];
     if (!OPENAI_API_KEY) {
-        // No embeddings available: fall back to Tavily's own relevance score.
+        // no OpenAI key — use Tavily's score
         return [...candidates]
             .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
             .slice(0, maxResults);

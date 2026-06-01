@@ -1,8 +1,6 @@
 import db from '../config/db.js';
 
-// Dead letter queue: a durable record of jobs that failed every retry attempt.
-// Instead of silently disappearing, exhausted jobs land here so they can be
-// inspected, alerted on, or replayed later.
+// jobs that exhausted all retries land here for inspection
 export const ensureDeadLetterTable = async () => {
     await db.query(`
         CREATE TABLE IF NOT EXISTS dead_letter_jobs (
@@ -17,8 +15,7 @@ export const ensureDeadLetterTable = async () => {
     `);
 };
 
-// Records a permanently-failed job. Best-effort: never throws, so a logging
-// failure here can't take down the worker's event handler.
+// best-effort — don't crash the worker if logging fails
 export const moveToDeadLetter = async (job, err) => {
     try {
         await db.query(
@@ -38,7 +35,7 @@ export const moveToDeadLetter = async (job, err) => {
     }
 };
 
-// True only when BullMQ has used up every configured attempt for this job.
+// all BullMQ attempts used up
 export const isExhausted = (job) => {
     if (!job) return false;
     const maxAttempts = job.opts?.attempts ?? 1;
