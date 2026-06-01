@@ -53,9 +53,17 @@ try {
     await client.connect();
     console.log(`Connected. Applying ${scriptName} ...`);
 
-    await client.query(sql);
+    const result = await client.query(sql);
 
-    console.log(`\nSuccess: ${scriptName} applied. Schema, roles, tables, and RLS are ready.`);
+    const results = Array.isArray(result) ? result : [result];
+    for (const r of results) {
+        if (r && Array.isArray(r.rows) && r.rows.length > 0) {
+            console.log(`\n${r.command} (${r.rowCount} row${r.rowCount === 1 ? '' : 's'}):`);
+            console.table(r.rows);
+        }
+    }
+
+    console.log(`\nSuccess: ${scriptName} applied.`);
 } catch (error) {
     console.error(`\nFailed to apply ${scriptName}:`);
     console.error(`  ${error.message}`);
