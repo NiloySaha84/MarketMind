@@ -125,6 +125,13 @@ export const startOutboxDispatcher = async () => {
     poller = setInterval(dispatchOutboxBatch, POLL_INTERVAL_MS);
 };
 
+export const stopOutboxDispatcher = () => {
+    if (poller) {
+        clearInterval(poller);
+        poller = null;
+    }
+};
+
 const isMainModule = process.argv[1]?.endsWith('outbox-dispatcher.js');
 
 if (isMainModule) {

@@ -14,9 +14,11 @@
     "start:api": "node app.js",
     "start:dispatcher": "node dispatcher-server.js",
     "start:worker": "node worker-server.js",
+    "start:queue": "node queue-service.js",
     "dev:api": "nodemon app.js",
     "dev:dispatcher": "nodemon dispatcher-server.js",
-    "dev:worker": "nodemon worker-server.js"
+    "dev:worker": "nodemon worker-server.js",
+    "dev:queue": "nodemon queue-service.js"
   },
   "dependencies": {
     "@arcjet/inspect": "^1.4.0",
