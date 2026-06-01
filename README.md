@@ -55,6 +55,7 @@ The user experience is simple, but a lot is happening behind the scenes to make 
 - Vitest
 - GitHub Actions
 - Docker Compose
+- Docker Swarm (Oracle Cloud VM)
 - Artillery
 
 ## High-Level Architecture
@@ -484,46 +485,109 @@ For integration tests, the workflow applies `db/init.sql` before running the tes
 
 ## Docker
 
-The project has a production-style Docker Compose setup.
+I containerized the whole stack so the architecture diagram above is not just a diagram — it is how the app actually runs. There are seven services: `api`, `dispatcher`, `worker`, `frontend`, `postgres`, `redis`, and `pgadmin`. Each backend process gets its own container instead of cramming the API, dispatcher, and worker into one Node process.
 
-Services:
+### Running the stack locally with Compose
 
-- `api`
-- `dispatcher`
-- `worker`
-- `frontend`
-- `postgres`
-- `redis`
-- `pgadmin`
-
-Run the full stack:
+For local production-style testing, I use `docker-compose.yml`. It builds images on your machine and wires the services together on a single Docker network.
 
 ```bash
-cp .env.production.local.example .env.production.local   # first time only; fill in secrets
+cp .env.production.local.example .env.production.local
 docker compose --env-file .env.production.local up --build
 ```
 
-Compose reads `.env.production.local` for `${REDIS_PASSWORD}`, `${PGADMIN_*}` and other substitutions. Do not commit that file.
+Copy `.env.production.local.example` first and fill in real values. That file is gitignored — it holds DB passwords, JWT secret, API keys, and the rest. Compose reads it for variable substitution and passes it into the containers.
 
-The frontend is available on:
+Once everything is up:
+
+- Frontend: `http://localhost:8080`
+- API: `http://localhost:3000`
+- pgAdmin: `http://localhost:5050`
+
+The backend image is Node 20 Alpine. The frontend image runs a two-stage build: Vite compiles the React app, then nginx serves the static files and reverse-proxies `/api` to the backend. That keeps the browser on one origin so I do not have to fight CORS in production.
+
+### Deploying to production with Swarm on Oracle Cloud
+
+For a real deployment I wanted something closer to how this would run in production: pre-built images, secrets handled properly, and services that restart on their own. I put the app on a single Ubuntu VM on Oracle Cloud and run it as a Docker Swarm stack.
+
+The flow looks like this:
 
 ```text
-http://localhost:8080
+My Mac  →  build linux/amd64 images  →  push to Docker Hub  →  VM pulls and runs the stack
 ```
 
-The API is available on:
+I build on my Mac and push to Docker Hub because the VM is x86_64. If I built on Apple Silicon without cross-compiling, Swarm would refuse to start the containers with an "unsupported platform" error. The Makefile handles that with `--platform linux/amd64`.
+
+I publish four custom images — one Docker Hub repo per service name, even though the API, dispatcher, and worker are literally the same Node build tagged three ways:
 
 ```text
-http://localhost:3000
+niloysaha5335/marketmind-api-image
+niloysaha5335/marketmind-dispatcher-image
+niloysaha5335/marketmind-worker-image
+niloysaha5335/marketmind-frontend-image
 ```
 
-pgAdmin is available on:
+Postgres, Redis, and pgAdmin stay as public images. Only my app code gets built and versioned.
 
-```text
-http://localhost:5050
+#### How I control the remote VM from my laptop
+
+I added an SSH host called `oracle-vm` in `~/.ssh/config` pointing at the VM's public IP. Then I point the Docker CLI at it:
+
+```bash
+export DOCKER_HOST=ssh://oracle-vm
 ```
 
-The backend Dockerfile uses Node 20 Alpine. The frontend Dockerfile builds the Vite app and serves it from nginx.
+After that, `docker ps`, `docker stack deploy`, and the Makefile swarm targets all talk to the VM — not Docker Desktop on my Mac. When I want local Docker again, I run `unset DOCKER_HOST`.
+
+Swarm itself only needs to be initialized once on the VM (`make swarm-init`).
+
+#### Secrets and the stack file
+
+Production config lives in `.env.production.local` on my machine, same as local Compose. Before a deploy, `make swarm-secrets-prepare` reads that file and writes secret files into `.swarm-secrets/` (also gitignored). Swarm mounts them at `/run/secrets/...` inside the containers. The app reads them through `config/env.js`, so passwords and API keys never sit in the compose file as plain environment variables.
+
+The stack definition is in `docker-swarm.yml`. The same file works for local `docker compose` (via `make swarm-up`) and for remote `docker stack deploy` — I did not want two diverging configs.
+
+#### Deploying a new version
+
+After `docker login`, a full release is:
+
+```bash
+make swarm-release
+```
+
+That builds the amd64 images, pushes them to Docker Hub, prepares secrets, and runs `docker stack deploy` against the VM. The stack name is `marketmind`. To deploy without rebuilding — say I only changed a secret — `make swarm-deploy-stack` is enough.
+
+Swarm secrets cannot be updated in place. If I rotate a password, I tear down the stack with `make swarm-rm` and deploy again.
+
+To check what is running on the VM:
+
+```bash
+make swarm-services
+make swarm-ps
+```
+
+The app is served on port **8080** on the VM's public IP (`http://141.148.23.74:8080`). The frontend container listens on 80 internally; 8080 is the host mapping I chose in the stack file.
+
+#### Firewall issues I actually hit
+
+Getting the site reachable from a browser took more than Docker. Two things blocked traffic along the way.
+
+First, Oracle Cloud's VCN security list. By default only SSH (port 22) is open. I had to add an ingress rule for **TCP 8080** or every request from the internet timed out.
+
+Second, the VM's own iptables rules. Oracle's Ubuntu image rejects almost all inbound traffic except SSH, and it also had a blanket `REJECT` on the `FORWARD` chain. Docker Swarm routes published ports through `FORWARD`, so even after opening 8080 in Oracle's console I still got "connection refused" until I allowed Docker bridge traffic through `FORWARD` in `/etc/iptables/rules.v4`. Local curls to `127.0.0.1:8080` worked fine the whole time — the app was running; the network path from outside was not.
+
+That is worth knowing if you deploy the same way: the containers can be healthy while the site still looks down from a browser.
+
+#### Makefile
+
+I wrapped the repetitive docker commands in a Makefile so I do not have to remember image names, platforms, and `DOCKER_HOST` every time. The targets I use most:
+
+- `make build-push` — build and push all images
+- `make swarm-deploy-stack` — deploy to the VM
+- `make swarm-release` — both, in order
+- `make swarm-up` — run the swarm compose file locally without the VM
+
+`DOCKER_USER` defaults to my Docker Hub username; override it if you fork the project and push to your own repos.
 
 ## Running Locally
 
@@ -665,7 +729,9 @@ Before running it, set a valid JWT in the `authToken` variable inside the Artill
 ├── tests/
 ├── frontend/
 ├── docker-compose.yml
-├── dockerfile
+├── docker-swarm.yml
+├── Makefile
+├── Dockerfile
 ├── artillery.yml
 └── .github/workflows/test.yml
 ```
@@ -680,7 +746,7 @@ MarketMind started as a business idea analyzer, but the real value of the projec
 - BullMQ workers
 - Transactional outbox
 - Dead letter queue
-- Dockerized services
+- Dockerized services (Compose locally, Swarm on Oracle Cloud)
 - GitHub Actions CI
 - Site24x7 monitoring
 - Unit and integration tests
