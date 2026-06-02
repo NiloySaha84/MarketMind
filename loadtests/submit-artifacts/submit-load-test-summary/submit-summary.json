@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-06-02T01:34:44.494Z",
+  "test_type": "idea_submission",
+  "shards": 10,
+  "submissions": {
+    "created_201": 306,
+    "rate_limited_429": 1278,
+    "server_errors_5xx": 0,
+    "post_attempts": 1584,
+    "success_rate_pct": 19.32,
+    "estimated_queue_jobs": 612
+  },
+  "http": {
+    "requests": 1818,
+    "responses": 1818,
+    "codes": {
+      "200": 234,
+      "201": 306,
+      "429": 1278
+    }
+  },
+  "vusers": {
+    "created": 900,
+    "completed": 306,
+    "failed": 594
+  },
+  "response_time_ms": {
+    "all_requests_mean": 69.36,
+    "post_submit_mean": null,
+    "post_submit_max": null
+  },
+  "sources": [
+    "submit-report-shard-1.json",
+    "submit-report-shard-10.json",
+    "submit-report-shard-2.json",
+    "submit-report-shard-3.json",
+    "submit-report-shard-4.json",
+    "submit-report-shard-5.json",
+    "submit-report-shard-6.json",
+    "submit-report-shard-7.json",
+    "submit-report-shard-8.json",
+    "submit-report-shard-9.json"
+  ]
+}

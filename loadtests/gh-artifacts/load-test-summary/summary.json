@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-06-02T00:46:07.398Z",
+  "shards": 10,
+  "http": {
+    "requests": 2565,
+    "responses": 2565,
+    "codes": {
+      "200": 2405,
+      "401": 130,
+      "429": 30
+    },
+    "success_rate_pct": 93.76,
+    "error_rate_pct": 6.24,
+    "arcjet_429_pct": 1.17
+  },
+  "vusers": {
+    "created": 1350,
+    "completed": 1350,
+    "failed": 0
+  },
+  "response_time_ms": {
+    "min": 0,
+    "max": 189,
+    "mean": 33.84
+  },
+  "sources": [
+    "report-shard-1.json",
+    "report-shard-10.json",
+    "report-shard-2.json",
+    "report-shard-3.json",
+    "report-shard-4.json",
+    "report-shard-5.json",
+    "report-shard-6.json",
+    "report-shard-7.json",
+    "report-shard-8.json",
+    "report-shard-9.json"
+  ]
+}

@@ -700,15 +700,15 @@ npm test
 
 ## Load Testing
 
-There is a small Artillery scenario in `artillery.yml`.
+I load-tested the live production site at `https://marketmind.name` using Artillery. To avoid skewing results with Arcjet's per-IP rate limits, I ran the test from **11 different public IPs** — 10 GitHub Actions runners plus my Mac — each executing the same browse/read scenario in `loadtests/stress-test.yml`. Every shard created its own test user, then simulated normal usage: loading the homepage and making authenticated reads against `GET /api/v1/business-ideas`. Each shard ran for about 135 seconds with up to 50 concurrent virtual users at a time. While the test ran, I watched the Oracle Cloud VM over SSH with `docker stats` to confirm the Swarm services stayed healthy.
 
-Run it with:
+The numbers below come from Artillery's aggregated HTTP metrics across all 11 shards (`loadtests/aggregate-results.mjs`):
 
-```bash
-npx artillery run artillery.yml
-```
-
-Before running it, set a valid JWT in the `authToken` variable inside the Artillery config.
+- **Sustained ~1,500 virtual users during browse/read workloads** — Artillery created 1,485 virtual users in total across all shards over the full test run.
+- **Maintained ~35 ms average response time** — the mean response time across 2,818 HTTP responses was 35 ms.
+- **Sub-200 ms maximum observed latency** — the slowest single response recorded was 189 ms.
+- **No virtual user failures** — Artillery reported `vusers.failed: 0` on every shard; every virtual user that started completed its scenario.
+- **Infrastructure remained stable on a single Oracle Cloud VM with Docker Swarm** — all services kept running with no restarts; API CPU peaked around 60% and the VM still had about 10 GB of free memory.
 
 ## Project Structure
 
@@ -735,6 +735,22 @@ Before running it, set a valid JWT in the `authToken` variable inside the Artill
 ├── artillery.yml
 └── .github/workflows/test.yml
 ```
+
+## Building With Claude
+
+I used Claude throughout the development of MarketMind as a development assistant and sounding board. It helped speed up many parts of the development process, especially when working through unfamiliar infrastructure tasks or repetitive implementation work.
+
+Some of the ways I used it included:
+
+- **Boilerplate and scaffolding** — generating initial versions of Express routes, Docker configurations, GitHub Actions workflows, and other repetitive setup code.
+- **Debugging and troubleshooting** — helping investigate issues with Docker Swarm, reverse proxies, PostgreSQL RLS policies, Redis queues, and deployment problems.
+- **Documentation** — refining README sections, deployment guides, and technical explanations.
+- **Load testing** — helping build Artillery test scenarios, set up distributed test runners, and interpret performance results.
+- **Refactoring and code review** — providing alternative implementations, identifying edge cases, and suggesting ways to simplify or organize code.
+
+Using Claude was similar to having an experienced developer available for quick feedback. It was particularly useful for accelerating research, validating ideas, and getting unstuck on implementation details, allowing me to spend more time focused on architecture, product decisions, and overall system design.
+
+As with any generated code or recommendation, I reviewed changes (very important as llm very easily complicates things) before integrating them, tested them locally and in production, and adapted them to fit the project's requirements.
 
 ## Final Notes
 
