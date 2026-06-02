@@ -1,0 +1,62 @@
+config:
+  target: "{{ $processEnvironment.TARGET }}"
+  phases:
+    - name: Ramp up
+      duration: 45
+      arrivalRate: 1
+      maxVusers: 50
+    - name: Sustain
+      duration: 90
+      arrivalRate: 1
+      maxVusers: 50
+  plugins:
+    expect: {}
+  variables:
+    token: "{{ $processEnvironment.LOADTEST_TOKEN }}"
+
+scenarios:
+  - name: Browse homepage
+    weight: 7
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      - think: 2
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+      - think: 4
+
+  - name: Authenticated API reads
+    weight: 2
+    flow:
+      - get:
+          url: "/api/v1/business-ideas"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode:
+                - 200
+                - 429
+      - think: 3.5
+      - get:
+          url: "/api/v1/business-ideas"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode:
+                - 200
+                - 429
+      - think: 3.5
+
+  - name: Unauthenticated API
+    weight: 1
+    flow:
+      - get:
+          url: "/api/v1/business-ideas"
+          expect:
+            - statusCode:
+                - 401
+                - 429

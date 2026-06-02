@@ -1,0 +1,72 @@
+name: Distributed Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Target URL
+        required: true
+        default: https://marketmind.name
+      shards:
+        description: Number of parallel runners (distinct IPs)
+        required: true
+        default: "10"
+
+jobs:
+  load-test:
+    name: Shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Artillery
+        run: npm install -g artillery@latest
+
+      - name: Run load test shard
+        env:
+          TARGET: ${{ github.event.inputs.target }}
+          SHARD: ${{ matrix.shard }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          chmod +x loadtests/run-shard.sh
+          ./loadtests/run-shard.sh
+
+      - name: Upload shard report
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-shard-${{ matrix.shard }}
+          path: loadtests/report-shard-${{ matrix.shard }}.json
+          retention-days: 7
+
+  aggregate:
+    name: Aggregate results
+    needs: load-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: loadtests/aggregated
+          pattern: report-shard-*
+          merge-multiple: true
+
+      - name: Summarize metrics
+        run: node loadtests/aggregate-results.mjs loadtests/aggregated loadtests/summary.json
+
+      - name: Upload combined summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-summary
+          path: |
+            loadtests/summary.json
+            loadtests/aggregated/
+          retention-days: 7
