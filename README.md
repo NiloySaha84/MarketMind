@@ -1,5 +1,7 @@
 # MarketMind
 
+## [https://marketmind.name]
+
 MarketMind is a full-stack app I built for validating business ideas with real market research, competitor discovery, and a final report that can be checked against sources.
 
 The main goal of this project was not just to make an app that calls an AI API. I wanted to build something that looks and behaves more like a real production backend: JWT auth, PostgreSQL with row-level security, Redis caching, BullMQ queues, an outbox dispatcher, a dead letter queue, Dockerized services, tests, GitHub Actions, and Site24x7 monitoring.
