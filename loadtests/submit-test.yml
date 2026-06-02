@@ -1,0 +1,70 @@
+config:
+  target: "{{ $processEnvironment.TARGET }}"
+  phases:
+    - name: Ramp submissions
+      duration: 30
+      arrivalRate: 1
+      maxVusers: 10
+    - name: Sustain submissions
+      duration: 60
+      arrivalRate: 1
+      maxVusers: 10
+  plugins:
+    expect: {}
+  variables:
+    token: "{{ $processEnvironment.LOADTEST_TOKEN }}"
+    shard: "{{ $processEnvironment.SHARD }}"
+
+scenarios:
+  - name: Submit business idea and poll status
+    flow:
+      - post:
+          url: "/api/v1/business-ideas"
+          headers:
+            Authorization: "Bearer {{ token }}"
+            Content-Type: "application/json"
+          json:
+            idea: "Load test submission from shard {{ shard }} at {{ $timestamp }}"
+            target_market: "SaaS founders in North America"
+          capture:
+            - json: "$.data.business_idea_id"
+              as: ideaId
+          expect:
+            - statusCode:
+                - 201
+                - 429
+                - 500
+                - 503
+      - think: 2
+      - get:
+          url: "/api/v1/business-ideas/{{ ideaId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 429
+                - 500
+      - think: 3.5
+      - get:
+          url: "/api/v1/business-ideas/{{ ideaId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 429
+                - 500
+      - think: 3.5
+      - get:
+          url: "/api/v1/business-ideas/{{ ideaId }}"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+                - 429
+                - 500
